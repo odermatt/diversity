@@ -4,15 +4,15 @@ __author__ = 'Daniel'
 import numpy as np
 import math as math
 import os as os
-import beampy as bp
+import snappy as snappy
 import cartopy.crs as ccrs
 import cartopy.io.srtm as srtm
 import cartopy.io.img_tiles as maps
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-import package.auxiliary_functions as divaux
-import package.colour_scales as colscales
+import auxiliary_functions as divaux
+import colour_scales as colscales
 import configparser as configparser
 
 
@@ -52,7 +52,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
             print('Plotting ' + param_name + ' of ' + arranged_filepaths[nth_row][nth_col])
 
             # get product parameters
-            product = bp.ProductIO.readProduct(arranged_filepaths[nth_row][nth_col])
+            product = snappy.ProductIO.readProduct(arranged_filepaths[nth_row][nth_col])
             width = product.getSceneRasterWidth()
             height = product.getSceneRasterHeight()
             param_band = product.getBand(param_name)
@@ -104,9 +104,9 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                   ' of ' + str(height * width) + ' pixels')
 
             # read lat and lon information
-            geocoding = product.getGeoCoding()
-            lowlef = geocoding.getGeoPos(bp.PixelPos(0, height - 1), None)
-            upprig = geocoding.getGeoPos(bp.PixelPos(width - 1, 0), None)
+            geocoding = product.getSceneGeoCoding()
+            lowlef = geocoding.getGeoPos(snappy.PixelPos(0, height - 1), None)
+            upprig = geocoding.getGeoPos(snappy.PixelPos(width - 1, 0), None)
 
             # determine appropriate map canvas
             if not geogr_area:
@@ -480,7 +480,7 @@ def plot_ybm_map(basemap, geogr_area, param_range, add_margin, param_str, d2prod
 def main():
 
     config = configparser.ConfigParser()
-    config.read('map_products.ini')
+    config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../ini', 'map_products.ini'))
     method = config['DEFAULT']['method']
     d2products_folder = config['DEFAULT']['products_path']
     basemap = config['DEFAULT']['basemap']
