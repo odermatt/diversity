@@ -181,7 +181,7 @@ def get_ybm_strings(in_folder, year):
                         year + '-11-01_' + year + '-11-30', year + '-12-01_' + year + '-12-31']]
         arranged_labels = [['Jan ' + year, 'Feb ' + year, 'Mar ' + year, 'Apr ' + year],
                            ['May ' + year, 'Jun ' + year, 'Jul ' + year, 'Aug ' + year],
-                           ['Sep ' + year, 'Oct ' + year, 'Nov ' + year, 'Dez ' + year]]
+                           ['Sep ' + year, 'Oct ' + year, 'Nov ' + year, 'Dec ' + year]]
         for row in arrangement:
             row_filepaths = []
             for element in row:
