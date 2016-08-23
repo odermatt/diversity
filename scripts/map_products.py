@@ -388,8 +388,12 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
 
             # Write date
                 print('   adding annotation')
-                map.annotate(arranged_labels[nth_row][nth_col], xy = (0.05, 0.95), xycoords = 'axes fraction',
-                             fontsize = annotation_size, ha = 'left', va = 'top', zorder=14, color='white')
+                if basemap == 'quadtree_rgb':
+                    map.annotate(arranged_labels[nth_row][nth_col], xy = (0.05, 0.95), xycoords = 'axes fraction',
+                                 fontsize = annotation_size, ha = 'left', va = 'top', zorder=14, color='white')
+                else:
+                    map.annotate(arranged_labels[nth_row][nth_col], xy = (0.05, 0.95), xycoords = 'axes fraction',
+                                 fontsize = annotation_size, ha = 'left', va = 'top', zorder=14, color='black')
 
     # Create colorbar
     print('   creating colorbar')
