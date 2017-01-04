@@ -61,7 +61,7 @@ def iterate_statsop(beam_path, basis_xml_path, input_product_folder, output_fold
             if(platform.system() == 'Windows'):
                 os.system('"' + beam_path + 'bin/gpt.bat" ' + modif_xml_path)
             else:
-                os.system(beam_path + 'bin/gpt.command "' + modif_xml_path + '"')
+                os.system(beam_path + 'bin/gpt.sh "' + modif_xml_path + '"')
 
             os.remove(modif_xml_path)
             for extension in ['_band_mapping.txt', '_metadata.txt', '.dbf', '.fix', '.prj', '.qix', '.shp', '.shx']:
@@ -115,7 +115,7 @@ def merge_product_statistics(in_path, out_file, param):
 def main():
 
     config = configparser.ConfigParser()
-    config.read('extract_stats.ini')
+    config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../ini', 'extract_stats.ini'))
     aggregate_type = config['DEFAULT']['aggregate_type']
     beam_path = config['DEFAULT']['beam_path']
     d2products_folder = config['DEFAULT']['products_path']

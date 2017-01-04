@@ -8,7 +8,7 @@ import datetime as datetime
 import matplotlib.pyplot as plt
 import matplotlib.dates as dates
 import matplotlib.font_manager as font_manager
-import package.auxiliary_functions as divaux
+import modules.auxiliary_functions as divaux
 
 
 def plot_timeseries(x_dates, y_values, y_label, x_min, x_max, y_min, y_max, errors, img_filename, plot_title,
@@ -314,7 +314,7 @@ def plot_dby_timeseries(param_range, param_str, d2products_folder, lake, stats_s
 def main():
 
     config = configparser.ConfigParser()
-    config.read('plot_timeseries.ini')
+    config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../ini', 'plot_timeseries.ini'))
     method = config['DEFAULT']['method']
     d2products_folder = config['DEFAULT']['products_path']
     param_range = False if config['DEFAULT']['param_range'] == 'False' else config['DEFAULT']['param_range'].split(',')
