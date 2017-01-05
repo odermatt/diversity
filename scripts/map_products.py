@@ -163,8 +163,8 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
             else:
                 orientation = 'landscape'
 
-            global canvas_area
             canvas_area = [[lowlef.lon - lon_ext, lowlef.lat - south_ext], [upprig.lon + lon_ext, upprig.lat + north_ext]]
+            global canvas_area
 
             # Determine parameter-dependent styles
             if param_name in ['owt_cc_dominant_class_mode']:
