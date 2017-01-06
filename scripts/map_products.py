@@ -275,7 +275,6 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 #  Add shading if requested (SAZ = 315 clockwise from South; SZN = 60)
                 if basemap == 'srtm_hillshade':
                     print('   preparing SRTM hillshade basemap')
-                    print('   preparing SRTM hillshade basemap')
                     srtm_raster = PostprocessedRasterSource(source(), shade)
                     color_vals = [[0.8, 0.8, 0.8, 1], [1.0, 1.0, 1.0, 1]]
                     shade_grey = colors.LinearSegmentedColormap.from_list("ShadeGrey", color_vals)

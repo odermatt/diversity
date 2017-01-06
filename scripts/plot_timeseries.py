@@ -11,6 +11,16 @@ import matplotlib.font_manager as font_manager
 import modules.auxiliary_functions as divaux
 
 
+
+def colors(n_colors):
+    # composed with http://tools.medialab.sciences-po.fr/iwanthue/
+
+    color_list = ['#bc6559', '#64ac48', '#c35abc', '#9a963f', '#7863cc', '#cb8a41', '#688ccd', '#d34f34',
+                  '#4aac8d', '#d24376', '#b96f9e']
+
+    return color_list
+
+
 def plot_timeseries(x_dates, y_values, y_label, x_min, x_max, y_min, y_max, errors, img_filename, plot_title,
                     y_axis_label):
 
