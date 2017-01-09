@@ -422,9 +422,8 @@ def main():
         plot_dby_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
                             lake=lake, stats_str = stats_str, blacklist=blacklist)
     elif method.lower() == 'years_stacked':
-        import sandbox.daniel.varia.stacked_d24gwa as stacked_d24gwa
-        stacked_d24gwa (param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
-                            lake=lake, stats_str = stats_str, blacklist=blacklist)
+        plot_ybm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
+                            lake=lake, stats_str = stats_str, blacklist=blacklist, stacked=True)
     else:
         print('    method not known, please select decade_by_months/year_by_months/decade_by_years')
         return
