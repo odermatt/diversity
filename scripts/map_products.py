@@ -270,7 +270,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
             ##############################
             elif canvas_area[1][1] <= 55 and canvas_area[0][1] >= -55 and basemap in ['srtm_hillshade', 'srtm_elevation']:
 
-                source = srtm.SRTM1Source
+                source = srtm.SRTM3Source
 
             # define the required srtm area
                 srtm_area = [[math.floor(canvas_area[0][0]), math.floor(canvas_area[0][1])],
@@ -280,13 +280,13 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 #  Add shading if requested (SAZ = 315 clockwise from South; SZN = 60)
                 if basemap == 'srtm_hillshade':
                     print('   preparing SRTM hillshade basemap')
-                    srtm_raster = PostprocessedRasterSource(source(), shade)
+                    srtm_raster = PostprocessedRasterSource(source(max_nx=6, max_ny=6), shade)
                     color_vals = [[0.8, 0.8, 0.8, 1], [1.0, 1.0, 1.0, 1]]
                     shade_grey = colors.LinearSegmentedColormap.from_list("ShadeGrey", color_vals)
                     base_cols = shade_grey
                 elif basemap == 'srtm_elevation':
                     print('   preparing SRTM elevation basemap')
-                    srtm_raster = PostprocessedRasterSource(source(), elevate)
+                    srtm_raster = PostprocessedRasterSource(source(max_nx=6, max_ny=6), elevate)
                     color_vals = [[0.7, 0.7, 0.7, 1], [0.90, 0.90, 0.90, 1], [0.97, 0.97, 0.97, 1], [1.0, 1.0, 1.0, 1]]
                     elev_grey = colors.LinearSegmentedColormap.from_list("ElevGrey", color_vals)
                     base_cols = elev_grey
