@@ -45,7 +45,7 @@ def plot_timeseries(x_dates, y_values, y_label, x_min, x_max, y_min, y_max, erro
     end_date = x_max
 
     axes.errorbar(x_dates, y_values, label=y_label, marker='+', markerfacecolor='#666666',
-                 markersize=marker_size, linestyle='-', color='#666666', linewidth=1, yerr=errors)
+                 markersize=marker_size, linestyle='-', color='#000000', linewidth=1.5, elinewidth=0.5, yerr=errors)
 
     if x_min is not None:
         axes.set_xlim(x_min, x_max)
