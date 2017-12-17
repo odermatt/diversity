@@ -11,8 +11,8 @@ import cartopy.io.img_tiles as maps
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-import auxiliary_functions as divaux
-import colour_scales as colscales
+import modules.auxiliary_functions as divaux
+import modules.colour_scales as colscales
 import configparser as configparser
 import urllib.request
 from http.cookiejar import CookieJar
@@ -25,6 +25,8 @@ from cartopy.io import PostprocessedRasterSource, LocatedImage
 
 def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename, basemap='srtm_elevation',
                crop_ext=False, param_range=False, grid=True, geogr_area=False):
+
+    global canvas_area
 
     mpl.rc('font', family='Times New Roman')
 
@@ -91,10 +93,11 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 shallow_arr = shallow_arr.reshape(height, width)
                 param_arr = [shallow_arr[pixel] + param_arr[pixel] for pixel in range(len(param_arr))]
             if param_name == 'shallow':
-                extent_band = product.getBand('extent')
-                extent_arr = np.zeros(width * height,  dtype=data_type)
-                extent_band.readPixels(0, 0, width, height, extent_arr)
-                extent_arr = extent_arr.reshape(height, width)
+                obs_band = product.getBand('num_obs')
+                obs_arr = np.zeros(width * height,  dtype=data_type)
+                obs_band.readPixels(0, 0, width, height, obs_arr)
+                obs_arr = obs_arr.reshape(height, width)
+                extent_arr = (obs_arr >= 1).astype(int)
                 param_arr = [extent_arr[pixel] + param_arr[pixel] for pixel in range(len(param_arr))]
 
             # mask applicable pixels
@@ -149,9 +152,15 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 canvas_area = [[lowlef.lon - lon_ext, lowlef.lat - south_ext],
                                [upprig.lon + lon_ext, upprig.lat + north_ext]]
 
+                area_str =''
+
             # or use the predefined area's coordinates
             else:
                 canvas_area = geogr_area #[[-1.1, 7.9], [0.1, 8.7]]# geogr_area
+
+                area_str = '_' + str(geogr_area[0][0]) + '_' + str(geogr_area[0][1]) + '_' + str(geogr_area[1][0]) + '_' + \
+                           str(geogr_area[1][1])
+                area_str = area_str.replace('.', '-')
 
             # identify image aspect ratio
             x_dist = divaux.calculate_haversine(canvas_area[0][0], canvas_area[0][1], canvas_area[1][0], canvas_area[0][1])
@@ -162,9 +171,6 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 orientation = 'portrait'
             else:
                 orientation = 'landscape'
-
-            canvas_area = [[lowlef.lon - lon_ext, lowlef.lat - south_ext], [upprig.lon + lon_ext, upprig.lat + north_ext]]
-            global canvas_area
 
             # Determine parameter-dependent styles
             if param_name in ['owt_cc_dominant_class_mode']:
@@ -265,7 +271,12 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
             ##############################
             elif canvas_area[1][1] <= 55 and canvas_area[0][1] >= -55 and basemap in ['srtm_hillshade', 'srtm_elevation']:
 
-                source = srtm.SRTM3Source
+                if x_dist < 50 and y_dist < 50:
+                    print('   larger image side is ' + str(round(max(x_dist, y_dist), 1)) + ' km, applying SRTM1')
+                    source = srtm.SRTM1Source
+                else:
+                    print('   larger image side is ' + str(round(max(x_dist, y_dist), 1)) + ' km, applying SRTM3')
+                    source = srtm.SRTM3Source
 
             # define the required srtm area
                 srtm_area = [[math.floor(canvas_area[0][0]), math.floor(canvas_area[0][1])],
@@ -275,13 +286,13 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 #  Add shading if requested (SAZ = 315 clockwise from South; SZN = 60)
                 if basemap == 'srtm_hillshade':
                     print('   preparing SRTM hillshade basemap')
-                    srtm_raster = PostprocessedRasterSource(source(), shade)
+                    srtm_raster = PostprocessedRasterSource(source(max_nx=8, max_ny=8), shade)
                     color_vals = [[0.8, 0.8, 0.8, 1], [1.0, 1.0, 1.0, 1]]
                     shade_grey = colors.LinearSegmentedColormap.from_list("ShadeGrey", color_vals)
                     base_cols = shade_grey
                 elif basemap == 'srtm_elevation':
                     print('   preparing SRTM elevation basemap')
-                    srtm_raster = PostprocessedRasterSource(source(), elevate)
+                    srtm_raster = PostprocessedRasterSource(source(max_nx=8, max_ny=8), elevate)
                     color_vals = [[0.7, 0.7, 0.7, 1], [0.90, 0.90, 0.90, 1], [0.97, 0.97, 0.97, 1], [1.0, 1.0, 1.0, 1]]
                     elev_grey = colors.LinearSegmentedColormap.from_list("ElevGrey", color_vals)
                     base_cols = elev_grey
@@ -302,6 +313,13 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
             ##################################
 
             elif basemap in ['quadtree_rgb', 'nobasemap']:
+
+                # Initialize plot once and subplots iteratively
+                if nth_col + nth_row == 0:
+                    x_canvas = (x_dist * ncols) / (y_dist * nrows)
+                    fig = plt.figure(figsize = ((x_canvas * 3) + (2 * legend_extension), 3))
+                map = fig.add_subplot(nrows, ncols, 1 + nth_col + (ncols * nth_row), projection=ccrs.PlateCarree())
+                map.set_extent([canvas_area[0][0], canvas_area[1][0], canvas_area[0][1], canvas_area[1][1]])
 
                 if basemap == 'nobasemap':
                     print('   proceeding without basemap')
@@ -381,7 +399,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
 
     # Save plot
     output_folder = os.path.dirname(arranged_filepaths[nth_row][nth_col]) + '/../maps-' + aggregate_type
-    img_filename = output_folder + '/' + output_basename + '_' + param_name + '.png'
+    img_filename = output_folder + '/' + output_basename + '_' + param_name + area_str + '.png'
     print('   saving to PNG file', img_filename)
 
     if not os.path.exists(output_folder):
