@@ -91,6 +91,10 @@ def get_legend_str(layer_str):
         legend_str = '$\mathbf{mean\/FUB\/CHL-\mathit{a}\/[mg/m^{3}]}$'
     elif layer_str == 'chl_fub_sigma':
         legend_str = '$\mathbf{sdev\/FUB\/CHL-\mathit{a}\/[mg/m^{3}]}$'
+    elif layer_str == 'chl_mph_max':
+        legend_str = '$\mathbf{maximum\/MPH\/CHL-\mathit{a}\/[mg/m^{3}]}$'
+    elif layer_str == 'chl_fub_max':
+        legend_str = '$\mathbf{maximum\/FUB\/CHL-\mathit{a}\/[mg/m^{3}]}$'
     elif layer_str == 'cdom_fub_mean':
         legend_str = '$\mathbf{mean\/FUB\/CDOM\/[m^{-1}]}$'
     elif layer_str == 'cdom_fub_sigma':

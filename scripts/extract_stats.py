@@ -6,6 +6,7 @@ import platform as platform
 import os as os
 import string as string
 import pandas as pandas
+import subprocess as subprocess
 
 
 def create_xml(xml_path, input_shape_file, source_band_list, percentiles):
@@ -61,7 +62,9 @@ def iterate_statsop(beam_path, basis_xml_path, input_product_folder, output_fold
             if(platform.system() == 'Windows'):
                 os.system('"' + beam_path + 'bin/gpt.bat" ' + modif_xml_path)
             else:
-                os.system(beam_path + 'bin/gpt.sh "' + modif_xml_path + '"')
+                #os.system(beam_path + 'bin/gpt.sh "' + modif_xml_path + '"')
+                os.environ['JAVA_TOOL_OPTIONS'] = '-Djava.awt.headless=true'
+                subprocess.call([beam_path + 'bin/gpt.sh', modif_xml_path])
 
             os.remove(modif_xml_path)
             for extension in ['_band_mapping.txt', '_metadata.txt', '.dbf', '.fix', '.prj', '.qix', '.shp', '.shx']:
@@ -124,40 +127,53 @@ def main():
         if d2products_folder[-1] == '/':
            d2products_folder = d2products_folder[:-1]
 
-    lake = config['DEFAULT']['lake']
-    if d2products_folder == '':
-        input_product_folder = d2products_folder + 'Lake-' + lake + '/l3-' + aggregate_type + '/'
-    else:
-        input_product_folder = d2products_folder + '/Lake-' + lake + '/l3-' + aggregate_type + '/'
+    shape_files = []
+    shape_files_path = config['DEFAULT']['shapefiles_path']
+    shape_files_allext = os.listdir(shape_files_path)
+    for shape_file_allext in shape_files_allext:
+        if shape_file_allext.endswith('.shp'):
+            shape_files.append(shape_file_allext)
 
-    input_shape_file = config['DEFAULT']['shapefile_path']
-    source_band_names = config['DEFAULT']['param_str']
-    source_band_list = [source_band_name.lstrip() for source_band_name in source_band_names.split(',')]
-    percentiles = config['DEFAULT']['percentiles']
+    lakes = config['DEFAULT']['lakes']
+    lakes_list = [lake.lstrip() for lake in lakes.split(',')]
 
-    product_table_path = d2products_folder + '/Lake-' + lake + '/product-stats-' + aggregate_type
-    param_table_path = d2products_folder + '/Lake-' + lake + '/parameter-stats-' + aggregate_type
+    for lake in lakes_list:
+        if d2products_folder == '':
+            input_product_folder = d2products_folder + 'Lake-' + lake + '/l3-' + aggregate_type + '/'
+        else:
+            input_product_folder = d2products_folder + '/Lake-' + lake + '/l3-' + aggregate_type + '/'
 
-    if not os.path.exists(product_table_path):
-        os.makedirs(product_table_path)
-    if not os.path.exists(param_table_path):
-        os.makedirs(param_table_path)
+        for shape_file in shape_files:
+            if '0_' + lake.lower() + '.shp' in shape_file.lower():
+                lake_shape_file = shape_files_path + '/' + shape_file
+                print(lake_shape_file + ' found')
+        source_band_names = config['DEFAULT']['param_str']
+        source_band_list = [source_band_name.lstrip() for source_band_name in source_band_names.split(',')]
+        percentiles = config['DEFAULT']['percentiles']
+        product_table_path = d2products_folder + '/Lake-' + lake + '/product-stats-' + aggregate_type
+        param_table_path = d2products_folder + '/Lake-' + lake + '/parameter-stats-' + aggregate_type
 
-    basis_xml_path = product_table_path + '/batch_temp.xml'
+        if not os.path.exists(product_table_path):
+            os.makedirs(product_table_path)
+        if not os.path.exists(param_table_path):
+            os.makedirs(param_table_path)
 
-    create_xml(basis_xml_path, input_shape_file, source_band_list, percentiles)
+        basis_xml_path = product_table_path + '/batch_temp.xml'
 
-    iterate_statsop(beam_path=beam_path,
-                    basis_xml_path=basis_xml_path,
-                    input_product_folder=input_product_folder,
-                    output_folder=product_table_path)
+        create_xml(basis_xml_path, lake_shape_file, source_band_list, percentiles)
 
-    for source_band in source_band_list:
-        out_file = param_table_path + '/Lake-' + lake + '_' + source_band + '.txt'
-        print('Merging ' + source_band + ' from Lake ' + lake + ' ' + aggregate_type + ' product statistics')
-        merge_product_statistics(in_path=product_table_path, out_file=out_file, param=source_band)
+        iterate_statsop(beam_path=beam_path,
+                        basis_xml_path=basis_xml_path,
+                        input_product_folder=input_product_folder,
+                        output_folder=product_table_path)
 
-        print('\nPlease find merged results in:', out_file)
+        for source_band in source_band_list:
+            out_file = param_table_path + '/Lake-' + lake + '_' + source_band + '.txt'
+            print('Merging ' + source_band + ' from Lake ' + lake + ' ' + aggregate_type + ' product statistics')
+            merge_product_statistics(in_path=product_table_path, out_file=out_file, param=source_band)
+
+            print('\nPlease find merged results in:', out_file)
+
 
 if __name__ == "__main__":
     main()
