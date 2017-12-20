@@ -6,10 +6,9 @@ import os as os
 import numpy as np
 import pandas as pandas
 import snappy as snappy
-import scipy.stats as stats
 
 
-def get_owt_mode(product_path):
+def get_binary_owt(product_path):
 
     product = snappy.ProductIO.readProduct(product_path)
     owt_band = product.getBand('owt_cc_dominant_class_mode')
@@ -18,9 +17,33 @@ def get_owt_mode(product_path):
     data_type = np.float32
     param_arr = np.zeros(width * height, dtype=data_type)
     owt_band.readPixels(0, 0, width, height, param_arr)
+    owts, counts = np.unique(param_arr, return_counts=True)
 
-    return stats.mode(param_arr)[0][0]
+    clear_counts = 0
+    turbid_counts = 0
 
+    for count, owt in enumerate(owts[0:7]):
+        if owt in [1, 2, 3]:
+            clear_counts = clear_counts + counts[count]
+        elif owt in [4, 5, 6, 7]:
+            turbid_counts = turbid_counts + counts[count]
+
+    if clear_counts >= turbid_counts:
+        return 0
+    else:
+        return 1
+
+
+def mode(data):
+    counts = {}
+    for x in data.flatten():
+        counts[x] = counts.get(x,0) + 1
+    maxcount = max(counts.values())
+    modelist = []
+    for x in counts:
+        if counts[x] == maxcount:
+            modelist.append(x)
+    return modelist,maxcount
 
 
 def main():
@@ -38,37 +61,40 @@ def main():
         if d2products_folder[-1] == '/':
            d2products_folder = d2products_folder[:-1]
 
-    lake = config['DEFAULT']['lake']
-    param_table_path = d2products_folder + '/Lake-' + lake + '/parameter-stats-monthly'
+    lakes = config['DEFAULT']['lakes']
+    lakes_list = [lake.lstrip() for lake in lakes.split(',')]
 
-    owt_mode = get_owt_mode(d2products_folder + '/Lake-' + lake + '/l3-10y/Lake-' + lake + '_2003-01-01_2011-12-31.tif')
+    for lake in lakes_list:
+        param_table_path = d2products_folder + '/Lake-' + lake + '/parameter-stats-monthly'
 
-    blacklist_path = d2products_folder + '/Lake-' + lake + '/blacklist'
+        owt_mode = get_binary_owt(d2products_folder + '/Lake-' + lake + '/l3-10y/Lake-' + lake + '_2003-01-01_2011-12-31.tif')
 
-    if not os.path.exists(blacklist_path):
-        os.makedirs(blacklist_path)
+        blacklist_path = d2products_folder + '/Lake-' + lake + '/blacklist_' + threshold
 
-    for source_band in source_band_list:
+        if not os.path.exists(blacklist_path):
+            os.makedirs(blacklist_path)
 
-        param_table = pandas.read_csv(param_table_path + '/Lake-' + lake + '_' + source_band + '.txt', sep='\t',
-                                      header=0, na_values=[''])
+        for source_band in source_band_list:
 
-        out_file = blacklist_path + '/blacklist_Lake-' + lake + '_' + source_band + '.txt'
-        write_file = open(out_file, 'w')
+            param_table = pandas.read_csv(param_table_path + '/Lake-' + lake + '_' + source_band + '.txt', sep='\t',
+                                          header=0, na_values=[''])
 
-        max_total = max(param_table['total'])
+            out_file = blacklist_path + '/blacklist_Lake-' + lake + '_' + source_band + '.txt'
+            write_file = open(out_file, 'w')
 
-        for count, start_date in enumerate(param_table['stats_start_date']):
-            if owt_mode in [4, 5, 6, 7] and source_band in ['chl_fub_mean', 'cdom_fub_mean']:
-                write_file.write(start_date + '\n')
-            elif owt_mode in [1, 2, 3] and source_band in ['chl_mph_mean']:
-                write_file.write(start_date + '\n')
-            elif param_table['total'][count] < (max_total * 0.2):
-                write_file.write(start_date + '\n')
+            max_total = max(param_table['total'])
 
-        write_file.close()
+            for count, start_date in enumerate(param_table['stats_start_date']):
+                if owt_mode == 1 and source_band in ['chl_fub_mean', 'cdom_fub_mean']:
+                    write_file.write(start_date + '\n')
+                elif owt_mode == 0 and source_band in ['chl_mph_mean']:
+                    write_file.write(start_date + '\n')
+                elif param_table['total'][count] < (max_total * int(threshold) / 100):
+                    write_file.write(start_date + '\n')
 
-    print('\nLake ' + lake + ' blacklists written to:', blacklist_path)
+            write_file.close()
+
+        print('\nLake ' + lake + ' blacklists written to:', blacklist_path)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import math as math
 import numpy as np
 import os as os
 import fnmatch as fnmatch
+import datetime as datetime
 
 
 def calculate_haversine(lon1, lat1, lon2, lat2):
@@ -137,6 +138,56 @@ def get_single_label(product):
         product_month = months[int(str.split(product_basename, '_')[-1][5:7]) - 1]
         arranged_labels = [[product_month + ' ' + product_year]]
     return arranged_labels
+
+
+def read_blacklist(blacklist_path):
+
+    blacklist_read = open(blacklist_path)
+    blacklist = []
+
+    for line in blacklist_read:
+        blacklist.append(line[:10])
+
+    return blacklist
+
+
+def read_statsmonthly(statslist_path, stats_str, blacklist):
+
+    # Read the parameter-stats-monthly table
+    input_table = open(statslist_path)
+    line_number = 0
+    meas_dates = []
+    meas_values = []
+    if stats_str == 'average':
+        errors = []
+    else:
+        errors = None
+
+    for line in input_table:
+        line = line.lstrip()
+        line = line.replace('\n', '')
+        table_row_list = line.split('\t')
+        if line_number == 0:
+            stats_column = table_row_list.index(stats_str)
+            error_column = table_row_list.index('sigma')
+        else:
+            if blacklist != '' and table_row_list[0] in blacklist:
+                meas_values.append(np.nan)
+                if stats_str == 'average':
+                    errors.append(0)
+            elif round(float(table_row_list[stats_column])) == -999:
+                meas_values.append(np.nan)
+                if stats_str == 'average':
+                    errors.append(0)
+            else:
+                meas_values.append(float(table_row_list[stats_column]))
+                if stats_str == 'average':
+                    errors.append(float(table_row_list[error_column]))
+            meas_dates.append(datetime.datetime.strptime(table_row_list[0], '%Y-%m-%d'))
+
+        line_number += 1
+
+    return meas_dates, meas_values, errors
 
 
 def get_dby_strings(in_folder):

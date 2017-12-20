@@ -24,7 +24,7 @@ from cartopy.io import PostprocessedRasterSource, LocatedImage
 
 
 def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename, basemap='srtm_elevation',
-               crop_ext=False, param_range=False, grid=True, geogr_area=False):
+               crop_ext=False, param_range=False, blacklist=False, grid=True, geogr_area=False):
 
     global canvas_area
 
@@ -51,13 +51,16 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
         annotation_size = 9
         gridlabel_size = 4
 
+    valid_months = False
+
     for nth_row in range(nrows):
         for nth_col in range(ncols):
 
             print('Plotting ' + param_name + ' of ' + arranged_filepaths[nth_row][nth_col])
 
             # get product parameters
-            product = snappy.ProductIO.readProduct(arranged_filepaths[nth_row][nth_col])
+            product_path = arranged_filepaths[nth_row][nth_col]
+            product = snappy.ProductIO.readProduct(product_path)
 
             width = product.getSceneRasterWidth()
             height = product.getSceneRasterHeight()
@@ -75,7 +78,13 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
 
             # read parameter band
             param_arr = np.zeros(width * height,  dtype=data_type)
-            param_band.readPixels(0, 0, width, height, param_arr)
+
+            if product_path.split('_')[1] in blacklist:
+                param_arr[:] = np.nan
+            else:
+                valid_months = True
+                param_band.readPixels(0, 0, width, height, param_arr)
+
             param_arr = param_arr.reshape(height, width)
 
             # convert to centigrade if LSWT
@@ -179,7 +188,25 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 param_range = [0.5, 7.5]
                 ticks = list(range(1, 8, 1))
 
-            elif param_name in ['num_obs']:
+            # Try to get param_range from monthly stats
+            elif not param_range:
+                base_path = '/' + os.path.join(*product_path.split('/')[:-2])
+                lake_name = product_path.split('/')[-3].split('-')[1]
+                monthly_stats_path =  base_path + '/parameter-stats-monthly/Lake-' + \
+                                     lake_name + '_' + param_name + '.txt'
+                if os.path.exists(monthly_stats_path):
+                    meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'p90_threshold', blacklist)
+                    range_max = np.nanpercentile(meas_values,90)
+                    if np.isnan(range_max):
+                        range_max = 999
+                    if param_name.startswith('lswt'):
+                        meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'p10_threshold', blacklist)
+                        range_min = np.nanpercentile(meas_values, 10)
+                    else:
+                        range_min = 0
+                    param_range = [range_min, range_max]
+
+            if param_name in ['num_obs']:
                 color_type = colscales.num_obs_scale()
                 if not param_range:
                     if masked_param_arr.count() != 0:
@@ -222,7 +249,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 else:
                     color_type = colscales.cyano_portion()
                 ticks = [0, 0.2, 0.4, 0.6, 0.8, 1.0]
-                if (not param_range):
+                if not param_range:
                     param_range = [0, 1]
                 else:
                     if param_range[1] > 1:
@@ -387,6 +414,10 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 map.annotate(arranged_labels[nth_row][nth_col], xy = (0.05, 0.95), xycoords = 'axes fraction',
                              fontsize = annotation_size, ha = 'left', va = 'top', zorder=14, color='black')
 
+    if not valid_months:
+        print('   All products blacklisted, no plot produced for ' + output_basename + '_' + param_name)
+        return
+
     # Create colorbar
     print('   creating colorbar')
     fig = plt.gcf()
@@ -511,9 +542,10 @@ def plot_dby_map(basemap, geogr_area, param_range, add_margin, param_str, d2prod
     print('')
 
 
-def plot_ybm_map(basemap, geogr_area, param_range, add_margin, param_str, d2products_folder, lake):
+def plot_ybm_map(basemap, geogr_area, param_range, add_margin, param_str, d2products_folder, lake, blacklist):
 
     years = ['2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010', '2011']
+
     for year in years:
         if d2products_folder == '':
             folder = 'Lake-' + lake + '/l3-monthly'
@@ -523,8 +555,8 @@ def plot_ybm_map(basemap, geogr_area, param_range, add_margin, param_str, d2prod
         output_basename = 'Lake-' + lake + '_' + year + '_year-by-month_subplots'
         if arranged_filepaths != []:
             plot_param(arranged_filepaths=arranged_filepaths, arranged_labels=arranged_labels,
-                       output_basename=output_basename, param_range=param_range, param_name=param_str,
-                       basemap=basemap, crop_ext=add_margin, geogr_area=geogr_area)
+                       param_name=param_str, output_basename=output_basename, param_range=param_range,
+                       blacklist=blacklist, basemap=basemap, crop_ext=add_margin, geogr_area=geogr_area)
 
     print('   plot years by month sequence finished')
     print('')
@@ -544,28 +576,45 @@ def main():
     param_range = False if config['DEFAULT']['param_range'] == 'False' else config['DEFAULT']['param_range'].split(',')
     if param_range:
         param_range = [float(param_range[0]), float(param_range[1])]
-    param_str = config['DEFAULT']['param_str']
-    lake = config['DEFAULT']['lake']
+
     username = config['DEFAULT']['username']
     password = config['DEFAULT']['password']
-
     if username != 'None' and password != 'None':
         authenticate(username=username, password=password)
 
-    if method.lower() == 'single':
-        aggregate_type = config['SINGLE']['aggregate_type']
-        plot_single_map(basemap=basemap, geogr_area=geogr_area, add_margin=add_margin, param_range=param_range,
-                        param_str=param_str, aggregate_type=aggregate_type, d2products_folder=d2products_folder,
-                        lake=lake)
-    elif method.lower() == 'decade_by_years':
-        plot_dby_map(basemap=basemap, geogr_area=geogr_area, add_margin=add_margin, param_range=param_range,
-                     param_str=param_str, d2products_folder=d2products_folder, lake=lake)
-    elif method.lower() == 'year_by_months':
-        plot_ybm_map(basemap=basemap, geogr_area=geogr_area, add_margin=add_margin, param_range=param_range,
-                     param_str=param_str, d2products_folder=d2products_folder, lake=lake)
-    else:
-        print('    method not known, please select single/decade_by_years/year_by_months')
-        return
+    params = config['DEFAULT']['param_str']
+    params_list = [param.lstrip() for param in params.split(',')]
+
+    lakes = config['DEFAULT']['lakes']
+    lakes_list = [lake.lstrip() for lake in lakes.split(',')]
+
+    for lake in lakes_list:
+        for param in params_list:
+            if method.lower() == 'single':
+                aggregate_type = config['SINGLE']['aggregate_type']
+                plot_single_map(basemap=basemap, geogr_area=geogr_area, add_margin=add_margin, param_range=param_range,
+                                param_str=param, aggregate_type=aggregate_type, d2products_folder=d2products_folder,
+                                lake=lake)
+            elif method.lower() == 'decade_by_years':
+                plot_dby_map(basemap=basemap, geogr_area=geogr_area, add_margin=add_margin, param_range=param_range,
+                             param_str=param, d2products_folder=d2products_folder, lake=lake)
+            elif method.lower() == 'year_by_months':
+                blacklist_config = config['YEAR_BY_MONTH']['date_blacklist']
+
+                if blacklist_config != 'False':
+                    if blacklist_config.startswith('blacklist_'):
+                        blacklist = divaux.read_blacklist(d2products_folder + '/Lake-' + lake + '/' + blacklist_config +
+                                                  '/blacklist_lake-' + lake + '_' + param + '.txt')
+                    elif blacklist_config.startswith('20'):
+                        blacklist = blacklist_config.split(',')
+                else:
+                    blacklist = False
+
+                plot_ybm_map(basemap=basemap, geogr_area=geogr_area, add_margin=add_margin, param_range=param_range,
+                             param_str=param, d2products_folder=d2products_folder, lake=lake, blacklist=blacklist)
+            else:
+                print('    method not known, please select single/decade_by_years/year_by_months')
+                return
 
 
 if __name__ == "__main__":

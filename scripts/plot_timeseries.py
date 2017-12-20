@@ -97,7 +97,6 @@ def stacked_timeseries(x_dates, y_values, y_label, x_min, x_max, y_min, y_max, e
                        y_axis_label):
 
     import geoinfo.gicharts as gicharts
-    import pandas as pandas
 
     marker_size = 10
     tick_font_size = 12
@@ -408,25 +407,28 @@ def main():
         param_range = False if config['DEFAULT']['param_range'] == 'False' else config['DEFAULT']['param_range'].split(',')
         if param_range:
             param_range = [float(param_range[0]), float(param_range[1])]
-    lake = config['DEFAULT']['lake']
     stats_str = config['DEFAULT']['stats_str']
     blacklist = config['DEFAULT']['date_blacklist']
 
-    if method.lower() == 'decade_by_months':
-        plot_dbm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
-                            lake=lake, stats_str = stats_str, blacklist=blacklist)
-    elif method.lower() == 'year_by_months':
-        plot_ybm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
-                            lake=lake, stats_str = stats_str, blacklist=blacklist)
-    elif method.lower() == 'decade_by_years':
-        plot_dby_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
-                            lake=lake, stats_str = stats_str, blacklist=blacklist)
-    elif method.lower() == 'years_stacked':
-        plot_ybm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
-                            lake=lake, stats_str = stats_str, blacklist=blacklist, stacked=True)
-    else:
-        print('    method not known, please select decade_by_months/year_by_months/decade_by_years')
-        return
+    lakes = config['DEFAULT']['lakes']
+    lakes_list = [lake.lstrip() for lake in lakes.split(',')]
+
+    for lake in lakes_list:
+        if method.lower() == 'decade_by_months':
+            plot_dbm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
+                                lake=lake, stats_str = stats_str, blacklist=blacklist)
+        elif method.lower() == 'year_by_months':
+            plot_ybm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
+                                lake=lake, stats_str = stats_str, blacklist=blacklist)
+        elif method.lower() == 'decade_by_years':
+            plot_dby_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
+                                lake=lake, stats_str = stats_str, blacklist=blacklist)
+        elif method.lower() == 'years_stacked':
+            plot_ybm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
+                                lake=lake, stats_str = stats_str, blacklist=blacklist, stacked=True)
+        else:
+            print('    method not known, please select decade_by_months/year_by_months/decade_by_years')
+            return
 
 
 if __name__ == "__main__":
