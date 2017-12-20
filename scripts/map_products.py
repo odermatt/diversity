@@ -82,8 +82,9 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
             if product_path.split('_')[1] in blacklist:
                 param_arr[:] = np.nan
             else:
-                valid_months = True
                 param_band.readPixels(0, 0, width, height, param_arr)
+                if not np.isnan(np.nanmax(param_arr)):
+                    valid_months = True
 
             param_arr = param_arr.reshape(height, width)
 
@@ -199,9 +200,12 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                     range_max = np.nanpercentile(meas_values,90)
                     if np.isnan(range_max):
                         range_max = 999
+                    if range_max < 0.1:
+                        range_max = 0.1
                     if param_name.startswith('lswt'):
                         meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'p10_threshold', blacklist)
-                        range_min = np.nanpercentile(meas_values, 10)
+                        range_min = np.nanpercentile(meas_values, 10) - 273.15
+                        range_max = range_max - 273.15
                     else:
                         range_min = 0
                     param_range = [range_min, range_max]
@@ -603,7 +607,10 @@ def main():
 
                 if blacklist_config != 'False':
                     if blacklist_config.startswith('blacklist_'):
-                        blacklist = divaux.read_blacklist(d2products_folder + '/Lake-' + lake + '/' + blacklist_config +
+                        if param == 'num_obs':
+                            blacklist = ''
+                        else:
+                            blacklist = divaux.read_blacklist(d2products_folder + '/Lake-' + lake + '/' + blacklist_config +
                                                   '/blacklist_lake-' + lake + '_' + param + '.txt')
                     elif blacklist_config.startswith('20'):
                         blacklist = blacklist_config.split(',')
