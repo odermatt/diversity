@@ -204,8 +204,8 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                         range_max = 0.1
                     if param_name.startswith('lswt'):
                         meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'p10_threshold', blacklist)
-                        range_min = np.nanpercentile(meas_values, 10) - 273.15
-                        range_max = range_max - 273.15
+                        range_min = np.nanmin(meas_values) - 273.15
+                        range_max = np.nanmax(meas_values) - 273.15
                     else:
                         range_min = 0
                     param_range = [range_min, range_max]
