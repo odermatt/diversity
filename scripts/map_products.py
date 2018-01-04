@@ -218,12 +218,19 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                                        np.percentile(masked_param_arr.compressed(), 90)]
                     else:
                         param_range = [1, 7]
+
                 param_range[0] = math.floor(param_range[0])
                 param_range[1] = math.ceil(param_range[1])
+
+                if param_range[0] + 6 > param_range[1]:
+                    param_range[0] = param_range[1] - 6
+
                 if param_range[0] < 1:
                     param_range[0] = 1
+
                 if param_range[1] < 7:
                     param_range[1] = 7
+
                 interval = math.ceil((param_range[1] - param_range[0]) / 6)
                 ticks = list(range(param_range[0], param_range[0] + (6 * interval), interval))
                 param_range = [param_range[0] - (0.5 * interval), param_range[0] + (5.5 * interval)]
