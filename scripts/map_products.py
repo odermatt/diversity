@@ -195,20 +195,25 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 lake_name = product_path.split('/')[-3].split('-')[1]
                 monthly_stats_path =  base_path + '/parameter-stats-monthly/Lake-' + \
                                      lake_name + '_' + param_name + '.txt'
+
                 if os.path.exists(monthly_stats_path):
-                    meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'p90_threshold', blacklist)
-                    range_max = np.nanpercentile(meas_values,90)
-                    if np.isnan(range_max):
-                        range_max = 999
-                    if range_max < 0.1:
-                        range_max = 0.1
+
                     if param_name.startswith('lswt'):
-                        meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'p10_threshold', blacklist)
-                        range_min = np.nanmin(meas_values) - 273.15
-                        range_max = np.nanmax(meas_values) - 273.15
+                        meas_dates, maximum, errors = divaux.read_statsmonthly(monthly_stats_path, 'maximum', blacklist)
+                        meas_dates, minimum, errors = divaux.read_statsmonthly(monthly_stats_path, 'minimum', blacklist)
+                        param_range = [np.nanmin(minimum) - 273.15, np.nanmax(maximum) - 273.15]
+                        if np.isnan(param_range[1]):
+                            print('   No lswt data available in products')
+                            pass
+
                     else:
-                        range_min = 0
-                    param_range = [range_min, range_max]
+                        meas_dates, monthly_p90, errors = divaux.read_statsmonthly(monthly_stats_path, 'p90_threshold', blacklist)
+                        p90ofp90 = np.nanpercentile(monthly_p90, 90)
+
+                        if np.isnan(p90ofp90):
+                            p90ofp90 = 8
+
+                        param_range = divaux.get_range_specs(p90ofp90)[0]
 
             if param_name in ['num_obs']:
                 color_type = colscales.num_obs_scale()

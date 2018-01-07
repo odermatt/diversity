@@ -302,8 +302,12 @@ def plot_ybm_timeseries(param_range, param_str, d2products_folder, lake, stats_s
         meas_values = [meas_value - 273.15 for meas_value in meas_values]
 
     if not param_range:
-        y_min = divaux.get_range_specs(max(meas_values)*0.5)[0][0]
-        y_max = divaux.get_range_specs(max(meas_values)*0.5)[0][1]
+        if np.isnan(np.nanmax(meas_values)):
+            print('   No valid values available for ' + param_str + ', next one please')
+            return
+        else:
+            y_min = divaux.get_range_specs(np.nanmax(meas_values)*0.5)[0][0]
+            y_max = divaux.get_range_specs(np.nanmax(meas_values)*0.5)[0][1]
 
     if stacked == False:
         for year in range(2003, 2012):
@@ -400,35 +404,54 @@ def main():
     config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../ini', 'plot_timeseries.ini'))
     method = config['DEFAULT']['method']
     d2products_folder = config['DEFAULT']['products_path']
-    param_str = config['DEFAULT']['param_str']
-    if param_str in ['immersed_cyanobacteria_mean', 'floating_cyanobacteria_mean', 'floating_vegetation_mean']:
-        param_range = [0, 1]
-    else:
-        param_range = False if config['DEFAULT']['param_range'] == 'False' else config['DEFAULT']['param_range'].split(',')
-        if param_range:
-            param_range = [float(param_range[0]), float(param_range[1])]
     stats_str = config['DEFAULT']['stats_str']
-    blacklist = config['DEFAULT']['date_blacklist']
+    blacklist_config = config['DEFAULT']['date_blacklist']
+
+    params = config['DEFAULT']['param_str']
+    params_list = [param.lstrip() for param in params.split(',')]
 
     lakes = config['DEFAULT']['lakes']
     lakes_list = [lake.lstrip() for lake in lakes.split(',')]
 
     for lake in lakes_list:
-        if method.lower() == 'decade_by_months':
-            plot_dbm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
-                                lake=lake, stats_str = stats_str, blacklist=blacklist)
-        elif method.lower() == 'year_by_months':
-            plot_ybm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
-                                lake=lake, stats_str = stats_str, blacklist=blacklist)
-        elif method.lower() == 'decade_by_years':
-            plot_dby_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
-                                lake=lake, stats_str = stats_str, blacklist=blacklist)
-        elif method.lower() == 'years_stacked':
-            plot_ybm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
-                                lake=lake, stats_str = stats_str, blacklist=blacklist, stacked=True)
-        else:
-            print('    method not known, please select decade_by_months/year_by_months/decade_by_years')
-            return
+        for param_str in params_list:
+
+            if param_str in ['immersed_cyanobacteria_mean', 'floating_cyanobacteria_mean', 'floating_vegetation_mean']:
+                param_range = [0, 1]
+            else:
+                if config['DEFAULT']['param_range'] == 'False':
+                    param_range = False
+                else:
+                    param_range = config['DEFAULT']['param_range'].split(',')
+                    param_range = [float(param_range[0]), float(param_range[1])]
+
+            if blacklist_config != 'False':
+                if blacklist_config.startswith('blacklist_'):
+                    if param_str == 'num_obs':
+                        blacklist = ''
+                    else:
+                        blacklist = divaux.read_blacklist(d2products_folder + '/Lake-' + lake + '/' + blacklist_config +
+                                                          '/blacklist_lake-' + lake + '_' + param_str + '.txt')
+                elif blacklist_config.startswith('20'):
+                    blacklist = blacklist_config.split(',')
+            else:
+                blacklist = False
+
+            if method.lower() == 'decade_by_months':
+                plot_dbm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
+                                    lake=lake, stats_str = stats_str, blacklist=blacklist)
+            elif method.lower() == 'year_by_months':
+                plot_ybm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
+                                    lake=lake, stats_str = stats_str, blacklist=blacklist)
+            elif method.lower() == 'decade_by_years':
+                plot_dby_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
+                                    lake=lake, stats_str = stats_str, blacklist=blacklist)
+            elif method.lower() == 'years_stacked':
+                plot_ybm_timeseries(param_range=param_range, param_str=param_str, d2products_folder=d2products_folder,
+                                    lake=lake, stats_str = stats_str, blacklist=blacklist, stacked=True)
+            else:
+                print('    method not known, please select decade_by_months/year_by_months/decade_by_years')
+                return
 
 
 if __name__ == "__main__":

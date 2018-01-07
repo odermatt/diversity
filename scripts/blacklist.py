@@ -53,6 +53,7 @@ def main():
 
     d2products_folder = config['DEFAULT']['products_path']
     threshold = config['DEFAULT']['threshold']
+    min_lswt_n = config['DEFAULT']['min_lswt_n']
 
     source_band_names = config['DEFAULT']['param_str']
     source_band_list = [source_band_name.lstrip() for source_band_name in source_band_names.split(',')]
@@ -74,6 +75,15 @@ def main():
         if not os.path.exists(blacklist_path):
             os.makedirs(blacklist_path)
 
+        lswt_available = False
+        if min_lswt_n:
+            if os.path.isfile(param_table_path + '/Lake-' + lake + '_lswt_n_mean.txt'):
+                lswt_available = True
+                lswt_n_table = pandas.read_csv(param_table_path + '/Lake-' + lake + '_lswt_n_mean.txt', sep='\t',
+                                               header=0, na_values=[''])
+            else:
+                print('\nlswt_n stats file not available for lake ' + lake)
+
         for source_band in source_band_list:
 
             param_table = pandas.read_csv(param_table_path + '/Lake-' + lake + '_' + source_band + '.txt', sep='\t',
@@ -91,6 +101,9 @@ def main():
                     write_file.write(start_date + '\n')
                 elif param_table['total'][count] < (max_total * int(threshold) / 100):
                     write_file.write(start_date + '\n')
+                elif min_lswt_n and lswt_available:
+                    if (lswt_n_table['average'][count] < (273.15 + int(min_lswt_n))) and (lswt_n_table['average'][count] != -999.0):
+                        write_file.write(start_date + '\n')
 
             write_file.close()
 
