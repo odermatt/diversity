@@ -51,7 +51,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
         annotation_size = 9
         gridlabel_size = 4
 
-    valid_months = False
+    valid_maps = False
 
     for nth_row in range(nrows):
         for nth_col in range(ncols):
@@ -79,12 +79,17 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
             # read parameter band
             param_arr = np.zeros(width * height,  dtype=data_type)
 
-            if product_path.split('_')[1] in blacklist:
-                param_arr[:] = np.nan
-            else:
+            if not blacklist:
                 param_band.readPixels(0, 0, width, height, param_arr)
                 if not np.isnan(np.nanmax(param_arr)):
-                    valid_months = True
+                    valid_maps = True
+            else:
+                if product_path.split('_')[1] in blacklist:
+                    param_arr[:] = np.nan
+                else:
+                    param_band.readPixels(0, 0, width, height, param_arr)
+                    if not np.isnan(np.nanmax(param_arr)):
+                        valid_maps = True
 
             param_arr = param_arr.reshape(height, width)
 
@@ -182,15 +187,9 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
             else:
                 orientation = 'landscape'
 
-            # Determine parameter-dependent styles
-            if param_name in ['owt_cc_dominant_class_mode']:
-                legend_decimals = '%.0f'
-                color_type = colscales.moores_seven_owt()
-                param_range = [0.5, 7.5]
-                ticks = list(range(1, 8, 1))
 
             # Try to get param_range from monthly stats
-            elif not param_range:
+            if not param_range:
                 base_path = '/' + os.path.join(*product_path.split('/')[:-2])
                 lake_name = product_path.split('/')[-3].split('-')[1]
                 monthly_stats_path =  base_path + '/parameter-stats-monthly/Lake-' + \
@@ -215,7 +214,14 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
 
                         param_range = divaux.get_range_specs(p90ofp90)[0]
 
-            if param_name in ['num_obs']:
+            # Determine parameter-dependent styles
+            if param_name in ['owt_cc_dominant_class_mode']:
+                legend_decimals = '%.0f'
+                color_type = colscales.moores_seven_owt()
+                param_range = [0.5, 7.5]
+                ticks = list(range(1, 8, 1))
+
+            elif param_name in ['num_obs']:
                 color_type = colscales.num_obs_scale()
                 if not param_range:
                     if masked_param_arr.count() != 0:
@@ -430,7 +436,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 map.annotate(arranged_labels[nth_row][nth_col], xy = (0.05, 0.95), xycoords = 'axes fraction',
                              fontsize = annotation_size, ha = 'left', va = 'top', zorder=14, color='black')
 
-    if not valid_months:
+    if not valid_maps:
         print('   All products blacklisted, no plot produced for ' + output_basename + '_' + param_name)
         return
 

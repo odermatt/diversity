@@ -225,8 +225,12 @@ def plot_dbm_timeseries(param_range, param_str, d2products_folder, lake, stats_s
         meas_values = [meas_value - 273.15 for meas_value in meas_values]
 
     if not param_range:
-        y_min = divaux.get_range_specs(max(meas_values)*0.5)[0][0]
-        y_max = divaux.get_range_specs(max(meas_values)*0.5)[0][1]
+        if np.isnan(np.nanmax(meas_values)):
+            print('   No valid values available for ' + param_str + ', next one please')
+            return
+        else:
+            y_min = divaux.get_range_specs(np.nanmax(meas_values)*0.5)[0][0]
+            y_max = divaux.get_range_specs(np.nanmax(meas_values)*0.5)[0][1]
 
     plot_timeseries(meas_dates, meas_values, y_label=y_label, x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max,
                     errors=errors, img_filename=dbm_plot_path, plot_title=plot_title, y_axis_label=y_axis_label)

@@ -171,7 +171,7 @@ def read_statsmonthly(statslist_path, stats_str, blacklist):
             stats_column = table_row_list.index(stats_str)
             error_column = table_row_list.index('sigma')
         else:
-            if blacklist != '' and table_row_list[0] in blacklist:
+            if blacklist and table_row_list[0] in blacklist:
                 meas_values.append(np.nan)
                 if stats_str == 'average':
                     errors.append(0)
