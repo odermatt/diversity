@@ -1,5 +1,5 @@
 #!python
-__author__ = 'Helga'
+__author__ = 'Helga, Daniel'
 
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
@@ -59,6 +59,22 @@ def plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
             if os.path.exists(monthly_stats_path):
                 meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'average',
                                                                            blacklist)
+
+                # remove leading and trailing NaNs in the time series
+                for i_value, value in enumerate(meas_values):
+                    if not np.isnan(value):
+                        meas_values = meas_values[i_value:]
+                        meas_dates = meas_dates[i_value:]
+                        break
+                for i_value, value in enumerate(reversed(meas_values)):
+                    if not np.isnan(value):
+                        if i_value == 0:
+                            break
+                        else:
+                            meas_values = meas_values[: -i_value]
+                            meas_dates = meas_dates[: -i_value]
+                            break
+
                 # statsmodels.seasonal_decompose: Plots saved in folder 'decomposition-plots'
                 data = {'date': meas_dates, 'values': meas_values}
                 df = pd.DataFrame(data, columns=['date', 'values'])
