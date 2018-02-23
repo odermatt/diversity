@@ -3,6 +3,7 @@ __author__ = 'Helga, Daniel'
 
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+import matplotlib
 import os as os
 import modules.auxiliary_functions as divaux
 import configparser as configparser
@@ -20,6 +21,43 @@ def get_trend(param, d2products_folder, lake, config):
         meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'p90_threshold',
                                                                    blacklist)
         return calculate_trend(meas_values)
+
+
+def plot(decomposition, param):
+    matplotlib.rcParams['font.serif'] = "times new roman"
+    matplotlib.rcParams['font.family'] = "serif"
+    params = matplotlib.rcParams
+    fig, axes = plt.subplots(4, 1, sharex=True)
+    font_dict_label = {'family': 'times new roman'}
+    font_dict_title = {'family': 'times new roman',
+                       'size': 16}
+
+    plt.rc('font', **font_dict_title)
+    plt.suptitle(param)
+
+    if hasattr(decomposition.observed, 'plot'):  # got pandas use it
+        decomposition.observed.plot(ax=axes[0], legend=False, colormap='Greys_r')
+        axes[0].set_ylabel('Observed', fontdict=font_dict_label, color='k')
+        decomposition.trend.plot(ax=axes[1], legend=False, colormap='Greys_r')
+        axes[1].set_ylabel('Trend', fontdict=font_dict_label, color='k')
+        decomposition.seasonal.plot(ax=axes[2], legend=False, colormap='Greys_r')
+        axes[2].set_ylabel('Seasonal', fontdict=font_dict_label, color='k')
+        decomposition.resid.plot(ax=axes[3], legend=False, colormap='Greys_r')
+        axes[3].set_ylabel('Residual', fontdict=font_dict_label, color='k')
+    else:
+        axes[0].plot(decomposition.observed)
+        axes[0].set_ylabel('Observed', fontdict=font_dict_label, color='k')
+        axes[1].plot(decomposition.trend)
+        axes[1].set_ylabel('Trend', fontdict=font_dict_label, color='k')
+        axes[2].plot(decomposition.seasonal)
+        axes[2].set_ylabel('Seasonal', fontdict=font_dict_label, color='k')
+        axes[3].plot(decomposition.resid)
+        axes[3].set_ylabel('Residual', fontdict=font_dict_label, color='k')
+        axes[3].set_xlabel('Time', fontdict=font_dict_label, color='k')
+        axes[3].set_xlim(0, decomposition.nobs)
+
+    # fig.tight_layout()
+    return fig
 
 
 def get_parameter_stats_monthly(param, d2products_folder, lake, config):
@@ -80,12 +118,13 @@ def plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
                 df = pd.DataFrame(data, columns=['date', 'values'])
                 df.index = df['date']
                 del df['date']
-                df = df.fillna(method='bfill')
-                df = df.fillna(method='ffill')
-                if df.isnull().sum().values[0] == 0:
+                # df = df.fillna(method='bfill')
+                # df = df.fillna(method='ffill')
+                # if df.isnull().sum().values[0] == 0:
+                if True:
                     decomposition = sm.tsa.seasonal_decompose(df, model='additive')
-                    fig = decomposition.plot()
-                    plt.title(param)
+                    # fig = decomposition.plot()
+                    fig = plot(decomposition, param)
                     fig.savefig(output_folder + '/Lake-' + lake + '_decomposition_' + param + '.png')
 
 
