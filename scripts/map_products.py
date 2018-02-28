@@ -4,6 +4,7 @@ __author__ = 'Daniel'
 import numpy as np
 import math as math
 import os as os
+import fnmatch as fnmatch
 import snappy as snappy
 import cartopy.crs as ccrs
 import cartopy.io.srtm as srtm
@@ -52,6 +53,9 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
         gridlabel_size = 4
 
     valid_maps = False
+
+    if param_range:
+        param_range, legend_decimals = divaux.get_range_specs(param_range[1])
 
     for nth_row in range(nrows):
         for nth_col in range(ncols):
@@ -191,7 +195,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
             # Try to get param_range from monthly stats
             if not param_range:
                 base_path = '/' + os.path.join(*product_path.split('/')[:-2])
-                lake_name = product_path.split('/')[-3].split('-')[1]
+                lake_name = product_path.split('/')[-3][5:]
                 monthly_stats_path =  base_path + '/parameter-stats-monthly/Lake-' + \
                                      lake_name + '_' + param_name + '.txt'
 
@@ -212,7 +216,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                         if np.isnan(p90ofp90):
                             p90ofp90 = 8
 
-                        param_range = divaux.get_range_specs(p90ofp90)[0]
+                        param_range, legend_decimals = divaux.get_range_specs(p90ofp90)
 
             # Determine parameter-dependent styles
             if param_name in ['owt_cc_dominant_class_mode']:
@@ -276,8 +280,8 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                 else:
                     if param_range[1] > 1:
                         param_range[1] = 1
-                    if param_range[0] > param_range[1]:
-                        param_range[0] = param_range[1] * 0.5
+                    if param_range[1] < 0.1:
+                        param_range[1] = 0.1
                 if param_range[1] - param_range[0] > 0.5:
                     legend_decimals = '%.1f'
                 else:
@@ -298,14 +302,13 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                     color_type = colscales.rainbow_king()
 
                 if not param_range:
-                    if masked_param_arr.count() != 0:
-                        param_range, legend_decimals = divaux.get_range_specs(np.percentile(masked_param_arr.compressed(), 90))
+                    if masked_param_arr.count() == 0:
+                        param_range, legend_decimals = divaux.get_range_specs(4)
                     else:
-                        param_range = [0, 3]
-                        legend_decimals = '%.1f'
-                else:
-                    forget, legend_decimals = divaux.get_range_specs((param_range[1] - param_range[0]))
-                    #legend_decimals = legend_decimals[0:2] + str(int(legend_decimals[2])+1) + legend_decimals[3:]
+                        param_range, legend_decimals = divaux.get_range_specs(np.percentile(masked_param_arr.compressed(), 90))
+
+                if param_name in ['chl_fub_mean'] and param_range[1] > 50:
+                    param_range[1] = 50
 
                 rel_ticks = [0.00, 0.2, 0.4, 0.6, 0.8, 1.00]
                 ticks = [rel_tick * param_range[1] for rel_tick in rel_ticks]
@@ -437,7 +440,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
                              fontsize = annotation_size, ha = 'left', va = 'top', zorder=14, color='black')
 
     if not valid_maps:
-        print('   All products blacklisted, no plot produced for ' + output_basename + '_' + param_name)
+        print('   No valid content found, no plot produced for ' + output_basename + '_' + param_name)
         return
 
     # Create colorbar
@@ -446,7 +449,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
     fig.subplots_adjust(top = 1, bottom = 0, left = 0, right = (x_canvas * 3) / ((x_canvas * 3) + (1.4 * legend_extension)),
                         wspace = 0.05, hspace = 0.05)
     cax = fig.add_axes([(x_canvas * 3) / ((x_canvas * 3) + (0.8 * legend_extension)), 0.15, 0.03, 0.7])
-    fig.colorbar(parameter, cax=cax, ticks = ticks, format = legend_decimals, orientation=bar_orientation)
+    fig.colorbar(parameter, cax=cax, ticks=ticks, format = legend_decimals, orientation=bar_orientation)
     legend_str = divaux.get_legend_str(param_name)
     cax.text(-1.2, 0.5, legend_str, rotation = 90, ha = 'center', va = 'center')
 
@@ -627,9 +630,17 @@ def main():
                     if blacklist_config.startswith('blacklist_'):
                         if param == 'num_obs':
                             blacklist = ''
+
                         else:
-                            blacklist = divaux.read_blacklist(d2products_folder + '/Lake-' + lake + '/' + blacklist_config +
+                            if '?' in blacklist_config:
+                                blacklist_folder = \
+                                fnmatch.filter(os.listdir(d2products_folder + '/Lake-' + lake), blacklist_config)[0]
+                            else:
+                                blacklist_folder = blacklist_config
+
+                            blacklist = divaux.read_blacklist(d2products_folder + '/Lake-' + lake + '/' + blacklist_folder +
                                                   '/blacklist_lake-' + lake + '_' + param + '.txt')
+
                     elif blacklist_config.startswith('20'):
                         blacklist = blacklist_config.split(',')
                 else:

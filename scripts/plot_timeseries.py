@@ -3,6 +3,7 @@ __author__ = 'Daniel'
 
 import configparser as configparser
 import os as os
+import fnmatch as fnmatch
 import numpy as np
 import datetime as datetime
 import matplotlib.pyplot as plt
@@ -204,7 +205,7 @@ def plot_dbm_timeseries(param_range, param_str, d2products_folder, lake, stats_s
             stats_column = table_row_list.index(stats_str)
             error_column = table_row_list.index('sigma')
         else:
-            if blacklist != '' and table_row_list[0] in blacklist:
+            if blacklist != False and table_row_list[0] in blacklist:
                 meas_values.append(np.nan)
                 if stats_str == 'average':
                     errors.append(0)
@@ -285,7 +286,7 @@ def plot_ybm_timeseries(param_range, param_str, d2products_folder, lake, stats_s
             stats_column = table_row_list.index(stats_str)
             error_column = table_row_list.index('sigma')
         else:
-            if blacklist != '' and table_row_list[0] in blacklist:
+            if blacklist != False and table_row_list[0] in blacklist:
                 meas_values.append(np.nan)
                 if stats_str == 'average':
                     errors.append(0)
@@ -374,7 +375,7 @@ def plot_dby_timeseries(param_range, param_str, d2products_folder, lake, stats_s
             stats_column = table_row_list.index(stats_str)
             error_column = table_row_list.index('sigma')
         else:
-            if blacklist != '' and table_row_list[0] in blacklist:
+            if blacklist != False and table_row_list[0] in blacklist:
                 meas_values.append(np.nan)
                 if stats_str == 'average':
                     errors.append(0)
@@ -434,7 +435,12 @@ def main():
                     if param_str == 'num_obs':
                         blacklist = ''
                     else:
-                        blacklist = divaux.read_blacklist(d2products_folder + '/Lake-' + lake + '/' + blacklist_config +
+                        if '?' in blacklist_config:
+                            blacklist_folder = fnmatch.filter(os.listdir(d2products_folder + '/Lake-' + lake), blacklist_config)[0]
+                        else:
+                            blacklist_folder = blacklist_config
+
+                        blacklist = divaux.read_blacklist(d2products_folder + '/Lake-' + lake + '/' + blacklist_folder +
                                                           '/blacklist_lake-' + lake + '_' + param_str + '.txt')
                 elif blacklist_config.startswith('20'):
                     blacklist = blacklist_config.split(',')
