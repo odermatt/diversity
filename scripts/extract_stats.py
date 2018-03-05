@@ -60,7 +60,7 @@ def iterate_statsop(beam_path, basis_xml_path, input_product_folder, output_fold
             print('Running StatisticsOp for product ' + file)
 
             if(platform.system() == 'Windows'):
-                os.system('"' + beam_path + 'bin/gpt.bat" ' + modif_xml_path)
+                os.system('"' + beam_path + 'bin/gpt" ' + modif_xml_path)
             else:
                 #os.system(beam_path + 'bin/gpt.sh "' + modif_xml_path + '"')
                 os.environ['JAVA_TOOL_OPTIONS'] = '-Djava.awt.headless=true'
