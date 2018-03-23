@@ -33,10 +33,11 @@ def main():
 
     for param in params:
         print(param)
+        df_1 = pd.DataFrame(data={'month': dates})
         df_20 = pd.DataFrame(data={'month': dates})
         df_50 = pd.DataFrame(data={'month': dates})
         df_50_XY = pd.DataFrame(data={'month': dates})
-        df_count = pd.DataFrame(data={'list': ['blacklist_20', 'blacklist_50', 'blacklist_50_XY']})
+        df_count = pd.DataFrame(data={'list': ['blacklist_1', 'blacklist_20', 'blacklist_50', 'blacklist_50_XY']})
         if d2products_folder != '':
             if d2products_folder[-1] == '/':
                 d2products_folder = d2products_folder[:-1]
@@ -61,28 +62,36 @@ def main():
                                         else:
                                             list.append('')
                                     list_df = pd.DataFrame({list[0]: list[1:]})
-                                    if 'blacklist_20' in dir:
-                                        df_20 = pd.concat([df_20, list_df], axis=1)
+                                    if 'blacklist_1' in dir:
+                                        df_1 = pd.concat([df_1, list_df], axis=1)
                                         if lake in df_count.columns:
                                             df_count.at[0, lake] = count
                                         else:
-                                            list_count = pd.DataFrame({lake: [count, 0, 0]})
+                                            list_count = pd.DataFrame({lake: [count, 0, 0, 0]})
+                                            df_count = pd.concat([df_count, list_count], axis=1)
+                                    if 'blacklist_20' in dir:
+                                        df_20 = pd.concat([df_20, list_df], axis=1)
+                                        if lake in df_count.columns:
+                                            df_count.at[1, lake] = count
+                                        else:
+                                            list_count = pd.DataFrame({lake: [0, count, 0, 0]})
                                             df_count = pd.concat([df_count, list_count], axis=1)
                                     if 'blacklist_50' in dir and 'blacklist_50_' not in dir:
                                         df_50 = pd.concat([df_50, list_df], axis=1)
                                         if lake in df_count.columns:
-                                            df_count.at[1, lake] = count
+                                            df_count.at[2, lake] = count
                                         else:
-                                            list_count = pd.DataFrame({lake: [0, count, 0]})
+                                            list_count = pd.DataFrame({lake: [0, 0, count, 0]})
                                             df_count = pd.concat([df_count, list_count], axis=1)
                                     if 'blacklist_50_' in dir:
                                         df_50_XY = pd.concat([df_50_XY, list_df], axis=1)
                                         if lake in df_count.columns:
-                                            df_count.at[2, lake] = count
+                                            df_count.at[3, lake] = count
                                         else:
-                                            list_count = pd.DataFrame({lake: [0, 0, count]})
+                                            list_count = pd.DataFrame({lake: [0, 0, 0, count]})
                                             df_count = pd.concat([df_count, list_count], axis=1)
 
+        df_1.to_csv(r'' + d2products_folder + '/blacklists/blacklist_1_' + param + '.txt', index=None, sep='\t')
         df_20.to_csv(r'' + d2products_folder + '/blacklists/blacklist_20_' + param + '.txt', index=None, sep='\t')
         df_50.to_csv(r'' + d2products_folder + '/blacklists/blacklist_50_' + param + '.txt', index=None, sep='\t')
         df_50_XY.to_csv(r'' + d2products_folder + '/blacklists/blacklist_50_XY_' + param + '.txt', index=None, sep='\t')

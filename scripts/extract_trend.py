@@ -11,6 +11,9 @@ import configparser as configparser
 import pandas as pd
 import numpy as np
 import pandas as pandas
+import datetime as datetime
+import fnmatch as fnmatch
+
 
 
 def get_trend(param, d2products_folder, lake, config):
@@ -34,27 +37,46 @@ def plot(decomposition, param):
                        'size': 16}
 
     plt.rc('font', **font_dict_title)
-    plt.suptitle(param)
+    plt.suptitle(param, weight='bold')
 
     if hasattr(decomposition.observed, 'plot'):  # got pandas use it
         decomposition.observed.plot(ax=axes[0], legend=False, colormap='Greys_r')
         axes[0].set_ylabel('Observed', fontdict=font_dict_label, color='k')
+        axes[0].tick_params(axis='y', which='major', labelsize=8)
+        axes[0].get_yaxis().set_label_coords(-0.09, 0.5)
         decomposition.trend.plot(ax=axes[1], legend=False, colormap='Greys_r')
         axes[1].set_ylabel('Trend', fontdict=font_dict_label, color='k')
+        axes[1].tick_params(axis='y', which='major', labelsize=8)
+        axes[1].get_yaxis().set_label_coords(-0.09, 0.5)
         decomposition.seasonal.plot(ax=axes[2], legend=False, colormap='Greys_r')
         axes[2].set_ylabel('Seasonal', fontdict=font_dict_label, color='k')
+        axes[2].tick_params(axis='y', which='major', labelsize=8)
+        axes[2].get_yaxis().set_label_coords(-0.09, 0.5)
         decomposition.resid.plot(ax=axes[3], legend=False, colormap='Greys_r')
         axes[3].set_ylabel('Residual', fontdict=font_dict_label, color='k')
+        axes[3].set_xlabel('', fontdict=font_dict_label, color='k')
+        axes[3].get_yaxis().set_label_coords(-0.09, 0.5)
+        axes[3].tick_params(axis='y', which='major', labelsize=8)
+        axes[3].tick_params(axis='x', which='major', labelsize=14)
     else:
         axes[0].plot(decomposition.observed)
         axes[0].set_ylabel('Observed', fontdict=font_dict_label, color='k')
+        axes[0].tick_params(axis='y', which='major', labelsize=8)
+        axes[0].get_yaxis().set_label_coords(-0.09, 0.5)
         axes[1].plot(decomposition.trend)
         axes[1].set_ylabel('Trend', fontdict=font_dict_label, color='k')
+        axes[1].tick_params(axis='y', which='major', labelsize=8)
+        axes[1].get_yaxis().set_label_coords(-0.09, 0.5)
         axes[2].plot(decomposition.seasonal)
         axes[2].set_ylabel('Seasonal', fontdict=font_dict_label, color='k')
+        axes[2].tick_params(axis='y', which='major', labelsize=8)
+        axes[2].get_yaxis().set_label_coords(-0.09, 0.5)
         axes[3].plot(decomposition.resid)
         axes[3].set_ylabel('Residual', fontdict=font_dict_label, color='k')
-        axes[3].set_xlabel('Time', fontdict=font_dict_label, color='k')
+        axes[3].set_xlabel('', fontdict=font_dict_label, color='k')
+        axes[3].tick_params(axis='y', which='major', labelsize=8)
+        axes[3].tick_params(axis='x', which='major', labelsize=12)
+        axes[3].get_yaxis().set_label_coords(-0.09, 0.5)
         axes[3].set_xlim(0, decomposition.nobs)
 
     # fig.tight_layout()
@@ -104,8 +126,16 @@ def plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
             if os.path.exists(monthly_stats_path):
                 meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'average',
                                                                            blacklist)
+                int_dates = []
+                int_values = []
+                int_errors = []
 
-                decomposition = seasonal_decompose(meas_dates, meas_values)
+                for i, date in enumerate(meas_dates):
+                    if date >= datetime.datetime(2003, 1, 1, 0, 0) and date <= datetime.datetime(2011, 12, 1, 0, 0):
+                        int_dates.append(date)
+                        int_values.append(meas_values[i])
+
+                decomposition = seasonal_decompose(int_dates, int_values)
                 # fig = decomposition.plot()
                 fig = plot(decomposition, param)
                 fig.savefig(output_folder + '/Lake-' + lake + '_decomposition_' + param + '.png')
@@ -145,8 +175,11 @@ def get_blacklist(config, d2products_folder, lake, param):
             if param == 'num_obs':
                 blacklist = ''
             else:
-                blacklist_folder = \
-                    fnmatch.filter(os.listdir(d2products_folder + '/Lake-' + lake), blacklist_config)[0]
+                if '?' in blacklist_config:
+                    blacklist_folder = \
+                        fnmatch.filter(os.listdir(d2products_folder + '/Lake-' + lake), blacklist_config)[0]
+                else:
+                    blacklist_folder = blacklist_config
                 blacklist_path = d2products_folder + '/Lake-' + lake + '/' + blacklist_folder + '/blacklist_lake-' + lake + '_' + param + '.txt'
                 if os.path.exists(blacklist_path):
                     blacklist = divaux.read_blacklist(blacklist_path)
