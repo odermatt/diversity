@@ -70,8 +70,8 @@ def seasonal_decompose(x, model="additive", filt=None, freq=None, two_sided=True
     x = np.asanyarray(x).squeeze()
     nobs = len(x)
 
-    #if not np.all(np.isfinite(x)):
-     #   raise ValueError("This function does not handle missing values")
+    # if not np.all(np.isfinite(x)):
+    #   raise ValueError("This function does not handle missing values")
     if model.startswith('m'):
         if np.any(x <= 0):
             raise ValueError("Multiplicative seasonality is not appropriate "
@@ -90,11 +90,11 @@ def seasonal_decompose(x, model="additive", filt=None, freq=None, two_sided=True
         if freq % 2 == 0:  # split weights at ends
             filt = np.array([.5] + [1] * (freq - 1) + [.5]) / freq
         else:
-            filt = np.repeat(1./freq, freq)
+            filt = np.repeat(1. / freq, freq)
 
     nsides = int(two_sided) + 1
     trend = convolution_filter(x, filt, nsides)
-    trend = trend[abs(nobs-len(trend))//2:len(trend)-(abs(nobs-len(trend))//2)]
+    trend = trend[abs(nobs - len(trend)) // 2:len(trend) - (abs(nobs - len(trend)) // 2)]
     trend = trend[:nobs]
 
     # nan pad for conformability - convolve doesn't do it
@@ -116,7 +116,7 @@ def seasonal_decompose(x, model="additive", filt=None, freq=None, two_sided=True
     if model.startswith('m'):
         resid = x / seasonal / trend
     else:
-        resid = detrended - seasonal
+        resid = x - trend - seasonal
 
     results = lmap(_pandas_wrapper, [seasonal, trend, resid, x])
     return DecomposeResult(seasonal=results[0], trend=results[1],
@@ -165,9 +165,9 @@ if __name__ == "__main__":
     results = seasonal_decompose(x, freq=4)
 
     from pandas import DataFrame, DatetimeIndex
+
     data = DataFrame(x, DatetimeIndex(start='1/1/1951',
                                       periods=len(x),
                                       freq='Q'))
 
     res = seasonal_decompose(data)
-
