@@ -36,7 +36,7 @@ def plot_param(arranged_filepaths, arranged_labels, param_name, output_basename,
     elif 'yearly' in arranged_filepaths[0][0]:
         aggregate_type = 'yearly'
     else:
-        aggregate_type = '10y'
+        aggregate_type = '9y'
 
     legend_extension = 1.2
     bar_orientation = 'vertical'
