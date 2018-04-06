@@ -68,7 +68,8 @@ def iterate_statsop(beam_path, basis_xml_path, input_product_folder, output_fold
 
             os.remove(modif_xml_path)
             for extension in ['_band_mapping.txt', '_metadata.txt', '.dbf', '.fix', '.prj', '.qix', '.shp', '.shx']:
-                os.remove(output_folder + '/' + os.path.splitext(prod_name)[0] + extension)
+                if os.path.exists(output_folder + '/' + os.path.splitext(prod_name)[0] + extension):
+                    os.remove(output_folder + '/' + os.path.splitext(prod_name)[0] + extension)
 
         else:
             print('Skipping file ' + file)

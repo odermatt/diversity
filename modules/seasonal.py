@@ -19,7 +19,7 @@ def seasonal_mean(x, freq):
     return np.array([pd_nanmean(x[i::freq]) for i in range(freq)])
 
 
-def seasonal_decompose(x, model="additive", filt=None, freq=None, two_sided=True):
+def seasonal_decompose(x, x_cleanup, model="additive", filt=None, freq=None, two_sided=True):
     """
     Seasonal decomposition using moving averages
 
@@ -68,6 +68,7 @@ def seasonal_decompose(x, model="additive", filt=None, freq=None, two_sided=True
     """
     _pandas_wrapper, pfreq = _maybe_get_pandas_wrapper_freq(x)
     x = np.asanyarray(x).squeeze()
+    x_cleanup = np.asanyarray(x_cleanup).squeeze()
     nobs = len(x)
 
     # if not np.all(np.isfinite(x)):
@@ -102,7 +103,7 @@ def seasonal_decompose(x, model="additive", filt=None, freq=None, two_sided=True
         detrended = x / trend
     else:
         nanTrend = np.nan_to_num(trend)
-        detrended = x - nanTrend
+        detrended = x_cleanup - nanTrend
 
     period_averages = seasonal_mean(detrended, freq)
 

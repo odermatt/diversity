@@ -24,7 +24,7 @@ def get_trend(param, d2products_folder, lake, config):
         return calculate_trend(meas_values)
 
 
-def plot(decomposition, param):
+def plot(decomposition, param, lake):
     idx = np.isfinite(decomposition.trend['values'])
     trend = calculate_trend_line(decomposition.trend['values'][idx])
     p = np.poly1d(trend)
@@ -43,7 +43,7 @@ def plot(decomposition, param):
                        'size': 16}
 
     plt.rc('font', **font_dict_title)
-    plt.suptitle(param, weight='bold')
+    plt.suptitle(lake + ": " + param, weight='bold')
 
     if hasattr(decomposition.observed, 'plot'):  # got pandas use it
         decomposition.observed.plot(ax=axes[0], legend=False, colormap='Greys_r')
@@ -144,9 +144,12 @@ def plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
                                                                            blacklist)
 
                 if len(np.array(meas_values)[np.isnan(meas_values)]) != len(meas_values):
-                    decomposition = seasonal_decompose(meas_dates, meas_values)
+                    decomposition, decomposition_cleanup = seasonal_decompose(meas_dates, meas_values)
                     # fig = decomposition.plot()
-                    fig = plot(decomposition, param)
+                    # fig = plot(decomposition, param, lake)
+                    # fig.savefig(output_folder + '/Lake-' + lake + '_decomposition_' + param + '.png')
+
+                    fig = plot(decomposition_cleanup, param, lake)
                     fig.savefig(output_folder + '/Lake-' + lake + '_decomposition_' + param + '.png')
 
 
@@ -180,16 +183,24 @@ def seasonal_decompose(meas_dates, meas_values):
     # df = df.fillna(method='bfill')
     # df = df.fillna(method='ffill')
     # if df.isnull().sum().values[0] == 0:
-    decomposition = sm.seasonal_decompose(df, model='additive')
+    decomposition = sm.seasonal_decompose(df, df, model='additive')
 
-    # df['date'] = pd.to_datetime(df.index)
-    # df['year'], df['month'] = df['date'].dt.year, df['date'].dt.month
-    # for i in range(1, 13):
-    #    print(len(df[np.isnan(df[df['month'] == i])]))
-    #    if len(df[df['month'] == i]) < 6:
-    #        df['values'][df['month'] == i] = np.nan
+    df_cleanup = df.copy(deep=True)  # secure old data
 
-    return decomposition
+    df_cleanup['date'] = pd.to_datetime(df_cleanup.index)
+    df_cleanup['year'], df_cleanup['month'] = df_cleanup['date'].dt.year, df_cleanup['date'].dt.month
+    for i in range(1, 13):
+        valid_values = len(df_cleanup[df_cleanup['month'] == i]) - np.sum(
+            np.isnan(df_cleanup[df_cleanup['month'] == i]['values']))
+        if valid_values < 6:
+            df_cleanup['values'][df_cleanup['month'] == i] = np.nan
+    del df_cleanup['date']
+    del df_cleanup['year']
+    del df_cleanup['month']
+
+    decomposition_cleanup = sm.seasonal_decompose(df, df_cleanup, model='additive')
+
+    return decomposition, decomposition_cleanup
 
 
 def get_blacklist(config, d2products_folder, lake, param):
@@ -220,7 +231,7 @@ def add_to_product_stats_10y(config, d2products_folder, lakes_list):
     for lake in lakes_list:
         print('Processing lake ' + lake)
         base_path = d2products_folder + '/Lake-' + lake
-        product_stats_path = base_path + '/product-stats-10y' + '/Lake-' + lake + '_2003-01-01_2011-12-31.txt'
+        product_stats_path = base_path + '/product-stats-9y' + '/Lake-' + lake + '_2003-01-01_2011-12-31.txt'
         if os.path.exists(product_stats_path):
             table = pd.read_csv(product_stats_path, sep='\t', header=0, na_values=[''])
             bands = table['Band']
@@ -236,7 +247,7 @@ def add_to_product_stats_10y(config, d2products_folder, lakes_list):
             seasonal_variances = []
             for band in bands:
                 (values, dates) = get_parameter_stats_monthly(band, d2products_folder, lake, config)
-                decomposition = seasonal_decompose(dates, values)
+                _, decomposition = seasonal_decompose(dates, values)
                 # trend
                 idx = np.isfinite(decomposition.trend['values'])
                 (t_seasonal, _) = calculate_trend(decomposition.trend['values'][idx])
@@ -305,7 +316,7 @@ def main():
     lakes_list = [lake.lstrip() for lake in lakes.split(',')]
 
     # statsmodels.seasonal_decompose: Plots saved in folder 'decomposition-plots'
-    # plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
+    plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
 
     # add info to product_stats_10y for all parameters
     add_to_product_stats_10y(config, d2products_folder, lakes_list)
