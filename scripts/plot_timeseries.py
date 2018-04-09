@@ -160,7 +160,10 @@ def plot_dbm_timeseries(param_range, param_str, d2products_folder, lake, stats_s
     if d2products_folder == '':
         input_file_path = 'Lake-' + lake + '/parameter-stats-monthly/Lake-' + lake + '_' + param_str + '.txt'
     else:
-        input_file_path = d2products_folder + '/Lake-' + lake + '/parameter-stats-monthly/Lake-' + lake + '_' + param_str + '.txt'
+        for file in os.listdir(d2products_folder + '/Lake-' + lake + '/parameter-stats-monthly'):
+            if param_str in file:
+                input_file_path = d2products_folder + '/Lake-' + lake + '/parameter-stats-monthly/' + file
+        #input_file_path = d2products_folder + '/Lake-' + lake + '/parameter-stats-monthly/Lake-' + lake + '_' + param_str + '.txt'
 
     if not os.path.exists(input_file_path):
         print('Missing ' + input_file_path)
@@ -244,7 +247,10 @@ def plot_ybm_timeseries(param_range, param_str, d2products_folder, lake, stats_s
     if d2products_folder == '':
         input_file_path = 'Lake-' + lake + '/parameter-stats-monthly/Lake-' + lake + '_' + param_str + '.txt'
     else:
-        input_file_path = d2products_folder + '/Lake-' + lake + '/parameter-stats-monthly/Lake-' + lake + '_' + param_str + '.txt'
+        for file in os.listdir(d2products_folder + '/Lake-' + lake + '/parameter-stats-monthly'):
+            if param_str in file:
+                input_file_path = d2products_folder + '/Lake-' + lake + '/parameter-stats-monthly/' + file
+        #input_file_path = d2products_folder + '/Lake-' + lake + '/parameter-stats-monthly/Lake-' + lake + '_' + param_str + '.txt'
 
     if not os.path.exists(input_file_path):
         print('Missing ' + input_file_path)
