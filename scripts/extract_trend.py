@@ -248,6 +248,18 @@ def add_to_product_stats_10y(config, d2products_folder, lakes_list):
             for band in bands:
                 (values, dates) = get_parameter_stats_monthly(band, d2products_folder, lake, config)
                 _, decomposition = seasonal_decompose(dates, values)
+                if decomposition is None:
+                    trend.append(np.nan)
+                    max_value.append(np.nan)
+                    max_month.append(np.nan)
+                    min_value.append(np.nan)
+                    min_month.append(np.nan)
+                    baselines.append(np.nan)
+                    baseline2_exceeded.append(np.nan)
+                    seasonal_variations.append(np.nan)
+                    high_residual.append(np.nan)
+                    seasonal_variances.append(np.nan)
+                    continue
                 # trend
                 idx = np.isfinite(decomposition.trend['values'])
                 (t_seasonal, _) = calculate_trend(decomposition.trend['values'][idx])
@@ -316,7 +328,7 @@ def main():
     lakes_list = [lake.lstrip() for lake in lakes.split(',')]
 
     # statsmodels.seasonal_decompose: Plots saved in folder 'decomposition-plots'
-    plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
+    # plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
 
     # add info to product_stats_10y for all parameters
     add_to_product_stats_10y(config, d2products_folder, lakes_list)

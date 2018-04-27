@@ -69,7 +69,10 @@ def seasonal_decompose(x, x_cleanup, model="additive", filt=None, freq=None, two
     _pandas_wrapper, pfreq = _maybe_get_pandas_wrapper_freq(x)
     x = np.asanyarray(x).squeeze()
     x_cleanup = np.asanyarray(x_cleanup).squeeze()
-    nobs = len(x)
+    try:
+        nobs = len(x)
+    except TypeError:
+        return None
 
     # if not np.all(np.isfinite(x)):
     #   raise ValueError("This function does not handle missing values")
