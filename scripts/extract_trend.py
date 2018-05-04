@@ -97,7 +97,7 @@ def get_parameter_stats_monthly(param, d2products_folder, lake, config):
     monthly_stats_path = base_path + '/parameter-stats-monthly/Lake-' + \
                          lake + '_' + param + '.txt'
     if os.path.exists(monthly_stats_path):
-        meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'p90_threshold',
+        meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'average',
                                                                    blacklist)
         return (meas_values, meas_dates)
     else:
@@ -135,14 +135,16 @@ def plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
         for param in params_list:
-            blacklist = get_blacklist(config, d2products_folder, lake, param)
-
-            monthly_stats_path = base_path + '/parameter-stats-monthly/Lake-' + \
-                                 lake + '_' + param + '.txt'
-            if os.path.exists(monthly_stats_path):
-                meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'average',
-                                                                           blacklist)
-
+            (meas_values, meas_dates) = get_parameter_stats_monthly(param, d2products_folder, lake, config)
+            # blacklist = get_blacklist(config, d2products_folder, lake, param)
+            #
+            # monthly_stats_path = base_path + '/parameter-stats-monthly/Lake-' + \
+            #                     lake + '_' + param + '.txt'
+            # if os.path.exists(monthly_stats_path):
+            #    meas_dates, meas_values, errors = divaux.read_statsmonthly(monthly_stats_path, 'average',
+            #                                                               blacklist)
+            #
+            if (len(meas_values) != 0):
                 if len(np.array(meas_values)[np.isnan(meas_values)]) != len(meas_values):
                     decomposition, decomposition_cleanup = seasonal_decompose(meas_dates, meas_values)
                     # fig = decomposition.plot()
@@ -263,18 +265,18 @@ def add_to_product_stats_10y(config, d2products_folder, lakes_list):
                 # trend
                 idx = np.isfinite(decomposition.trend['values'])
                 (t_seasonal, _) = calculate_trend(decomposition.trend['values'][idx])
-                trend.append(round(t_seasonal * 12, 4))
+                trend.append(t_seasonal * 12)
                 # min/max month and value seasonal
                 one_year = decomposition.seasonal.loc['20040101':'20041201']
                 max = one_year.max()[0]
-                max_value.append(round(max, 4))
+                max_value.append(max, )
                 if len(one_year) > 0:
                     idxmax = one_year.idxmax()[0]
                 else:
                     idxmax = np.nan
                 max_month.append(idxmax)
                 min = one_year.min()[0]
-                min_value.append(round(min, 4))
+                min_value.append(min)
                 if len(one_year) > 0:
                     idxmin = one_year.idxmin()[0]
                 else:
@@ -283,25 +285,25 @@ def add_to_product_stats_10y(config, d2products_folder, lakes_list):
 
                 # higher than baseline
                 baseline = one_year.nsmallest(3, 'values').mean()[0]
-                baselines.append(round(baseline, 4))
+                baselines.append(baseline)
                 idx = one_year['values'] > baseline + abs(baseline)
                 over_baseline_list = one_year['values'][idx].index.strftime("%Y-%m-%d").tolist()
                 one_year_non_nan = len(one_year[~np.isnan(one_year['values'])])
                 over_baseline = len(over_baseline_list) / one_year_non_nan if one_year_non_nan != 0 else 0
-                baseline2_exceeded.append(round(over_baseline, 4))
+                baseline2_exceeded.append(over_baseline)
 
                 # residuum higher than seasonal variation
                 seasonal_variation = abs(max - min)
-                seasonal_variations.append(round(seasonal_variation, 4))
+                seasonal_variations.append(seasonal_variation)
                 idx = decomposition.resid['values'] > seasonal_variation * 2
                 high_list = decomposition.resid['values'][idx].index.strftime("%Y-%m-%d").tolist()
                 observed_non_nan = len(decomposition.observed[~np.isnan(decomposition.observed)])
                 high = len(high_list) / observed_non_nan if observed_non_nan != 0 else 0
-                high_residual.append(round(high, 4))
+                high_residual.append(high)
 
                 # seasonal variance
                 seasonal_variance = np.nanvar(decomposition.seasonal)
-                seasonal_variances.append(round(seasonal_variance, 4))
+                seasonal_variances.append(seasonal_variance)
 
             table = table.assign(trend_per_year=trend)
             table = table.assign(max_value_seasonal=max_value)
@@ -328,7 +330,7 @@ def main():
     lakes_list = [lake.lstrip() for lake in lakes.split(',')]
 
     # statsmodels.seasonal_decompose: Plots saved in folder 'decomposition-plots'
-    # plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
+    plots_seasonal_decompose(config, d2products_folder, lakes_list, params_list)
 
     # add info to product_stats_10y for all parameters
     add_to_product_stats_10y(config, d2products_folder, lakes_list)
